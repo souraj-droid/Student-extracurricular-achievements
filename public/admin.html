@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin • Achievements</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-2xl font-semibold">Admin Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-blue-600">Student view</a>
+        <button id="logout" class="text-blue-600">Logout</button>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mt-6">
+      <div class="bg-white p-4 rounded shadow">
+        <h2 class="font-medium mb-3">Create Activity</h2>
+        <input id="actName" class="border p-2 w-full mb-2 rounded" placeholder="Name" />
+        <input id="actCategory" class="border p-2 w-full mb-2 rounded" placeholder="Category" />
+        <button id="btnCreateActivity" class="bg-blue-600 text-white px-3 py-2 rounded">Create</button>
+      </div>
+
+      <div class="bg-white p-4 rounded shadow">
+        <h2 class="font-medium mb-3">Create Student</h2>
+        <input id="stuName" class="border p-2 w-full mb-2 rounded" placeholder="Name" />
+        <input id="stuRoll" class="border p-2 w-full mb-2 rounded" placeholder="Roll" />
+        <input id="stuClass" class="border p-2 w-full mb-2 rounded" placeholder="Class" />
+        <input id="stuSection" class="border p-2 w-full mb-2 rounded" placeholder="Section" />
+        <input id="stuEmail" class="border p-2 w-full mb-2 rounded" placeholder="Email (optional)" />
+        <input id="stuPassword" type="password" class="border p-2 w-full mb-2 rounded" placeholder="Password (optional)" />
+        <button id="btnCreateStudent" class="bg-blue-600 text-white px-3 py-2 rounded">Create</button>
+      </div>
+
+      <div class="bg-white p-4 rounded shadow">
+        <h2 class="font-medium mb-3">Record Achievement</h2>
+        <select id="achStudent" class="border p-2 w-full mb-2 rounded"></select>
+        <select id="achActivity" class="border p-2 w-full mb-2 rounded"></select>
+        <input id="achTitle" class="border p-2 w-full mb-2 rounded" placeholder="Title" />
+        <select id="achType" class="border p-2 w-full mb-2 rounded">
+          <option value="award">Award</option>
+          <option value="recognition">Recognition</option>
+          <option value="participation">Participation</option>
+        </select>
+        <input id="achLevel" class="border p-2 w-full mb-2 rounded" placeholder="Level (e.g. District)" />
+        <input id="achPosition" class="border p-2 w-full mb-2 rounded" placeholder="Position (e.g. 1st)" />
+        <input id="achDate" class="border p-2 w-full mb-2 rounded" placeholder="Date (YYYY-MM-DD)" />
+        <input id="achCert" class="border p-2 w-full mb-2 rounded" placeholder="Certificate URL (optional)" />
+        <textarea id="achDesc" class="border p-2 w-full mb-2 rounded" placeholder="Description"></textarea>
+        <button id="btnCreateAchievement" class="bg-blue-600 text-white px-3 py-2 rounded">Record</button>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow mt-6">
+      <h2 class="font-medium mb-3">Summary</h2>
+      <pre id="summary" class="text-sm whitespace-pre-wrap"></pre>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow mt-4">
+      <h2 class="font-medium mb-3">All Achievements</h2>
+      <div id="allAchievements" class="grid gap-2"></div>
+    </div>
+  </div>
+
+  <script>
+    const api = (path, opts={}) => fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers||{}), Authorization: 'Bearer ' + localStorage.token } });
+    document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('token'); location.href='/'; });
+
+    async function guard() {
+      if (!localStorage.token) { location.href = '/'; return; }
+      const me = await api('/api/me');
+      if (!me.ok) { localStorage.removeItem('token'); location.href = '/'; return; }
+      const m = await me.json();
+      if (m.role !== 'admin') { location.href = '/'; }
+    }
+
+    async function loadSelects() {
+      const [studentsRes, activitiesRes] = await Promise.all([api('/api/students'), api('/api/activities')]);
+      const students = studentsRes.ok ? await studentsRes.json() : [];
+      const activities = activitiesRes.ok ? await activitiesRes.json() : [];
+      const sSel = document.getElementById('achStudent');
+      const aSel = document.getElementById('achActivity');
+      sSel.innerHTML = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+      aSel.innerHTML = activities.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    }
+
+    async function loadSummary() {
+      const res = await api('/api/reports/summary');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('summary').textContent = JSON.stringify(data, null, 2);
+      }
+      const all = await api('/api/achievements');
+      const wrap = document.getElementById('allAchievements');
+      wrap.innerHTML='';
+      if (all.ok) {
+        const list = await all.json();
+        list.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'border rounded p-3';
+          div.innerHTML = `<div class="font-medium">${item.title}</div>
+            <div class="text-sm text-gray-600">${item.type} • ${item.level || ''} ${item.position || ''} ${item.date || ''}</div>
+            <div class="text-sm">${item.description || ''}</div>`;
+          wrap.appendChild(div);
+        });
+      }
+    }
+
+    document.getElementById('btnCreateActivity').addEventListener('click', async ()=>{
+      const name = document.getElementById('actName').value.trim();
+      const category = document.getElementById('actCategory').value.trim();
+      if (!name) return;
+      const res = await api('/api/activities', { method: 'POST', body: JSON.stringify({ name, category }) });
+      if (res.ok) { document.getElementById('actName').value=''; document.getElementById('actCategory').value=''; loadSelects(); }
+    });
+
+    document.getElementById('btnCreateStudent').addEventListener('click', async ()=>{
+      const name = document.getElementById('stuName').value.trim();
+      const roll = document.getElementById('stuRoll').value.trim();
+      const cls = document.getElementById('stuClass').value.trim();
+      const section = document.getElementById('stuSection').value.trim();
+      const email = document.getElementById('stuEmail').value.trim();
+      const password = document.getElementById('stuPassword').value;
+      if (!name) return;
+      const body = { name, roll, class: cls, section, email, password };
+      const res = await api('/api/students', { method: 'POST', body: JSON.stringify(body) });
+      if (res.ok) { document.getElementById('stuName').value=''; document.getElementById('stuRoll').value=''; document.getElementById('stuClass').value=''; document.getElementById('stuSection').value=''; document.getElementById('stuEmail').value=''; document.getElementById('stuPassword').value=''; loadSelects(); }
+    });
+
+    document.getElementById('btnCreateAchievement').addEventListener('click', async ()=>{
+      const studentId = document.getElementById('achStudent').value;
+      const activityId = document.getElementById('achActivity').value;
+      const title = document.getElementById('achTitle').value.trim();
+      const type = document.getElementById('achType').value;
+      const level = document.getElementById('achLevel').value.trim();
+      const position = document.getElementById('achPosition').value.trim();
+      const date = document.getElementById('achDate').value.trim();
+      const certificateUrl = document.getElementById('achCert').value.trim();
+      const description = document.getElementById('achDesc').value.trim();
+      if (!title) return;
+      const body = { studentId, activityId, title, type, level, position, date, certificateUrl, description };
+      const res = await api('/api/achievements', { method: 'POST', body: JSON.stringify(body) });
+      if (res.ok) { document.getElementById('achTitle').value=''; document.getElementById('achLevel').value=''; document.getElementById('achPosition').value=''; document.getElementById('achDate').value=''; document.getElementById('achCert').value=''; document.getElementById('achDesc').value=''; loadSummary(); }
+    });
+
+    (async function init(){ await guard(); await loadSelects(); await loadSummary(); })();
+  </script>
+</body>
+</html>
