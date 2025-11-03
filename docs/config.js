@@ -3,5 +3,5 @@
 // Example (Glitch): 'https://your-glitch-app-name.glitch.me'
 // Must be HTTPS if GitHub Pages site is HTTPS.
 window.CONFIG = {
-  API_BASE: 'https://cool-doors-appear.loca.lt'
+  API_BASE: 'https://pretty-cobras-know.loca.lt'
 };
