@@ -1,115 +1,12 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Student Achievements • GitHub Pages</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="./config.js"></script>
-</head>
-<body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-semibold">Extracurricular Achievements</h1>
-      <a class="text-blue-600" href="./admin.html">Admin</a>
-    </div>
-
-    <div id="login" class="bg-white p-4 rounded shadow">
-      <h2 class="text-xl font-medium mb-4">Login</h2>
-      <div class="grid gap-3">
-        <input id="email" class="border p-2 rounded" placeholder="Email" />
-        <input id="password" type="password" class="border p-2 rounded" placeholder="Password" />
-        <button id="btnLogin" class="bg-blue-600 text-white px-4 py-2 rounded">Login</button>
-        <p id="loginStatus" class="text-red-600 text-sm"></p>
-      </div>
-    </div>
-
-    <div id="student" class="hidden">
-      <div class="flex justify-between items-center mt-6">
-        <h2 class="text-xl font-medium">My Dashboard</h2>
-        <button id="logout" class="text-blue-600">Logout</button>
-      </div>
-      <div id="profile" class="bg-white p-4 rounded shadow mt-4"></div>
-      <div class="bg-white p-4 rounded shadow mt-4">
-        <h3 class="font-medium mb-2">My Achievements</h3>
-        <div id="achievements" class="grid gap-2"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const BASE = (window.CONFIG && window.CONFIG.API_BASE) || '';
-    const api = (path, opts={}) => fetch(`${BASE}${path}`, {
-      ...opts,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(opts.headers||{}),
-        ...(localStorage.token ? { Authorization: 'Bearer ' + localStorage.token } : {})
-      }
-    });
-
-    const login = async () => {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-      const data = await res.json();
-      if (!res.ok) { document.getElementById('loginStatus').innerText = data.error || 'Login failed'; return; }
-      localStorage.token = data.token;
-      if (data.role === 'admin') { location.href = './admin.html'; return; }
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('student').classList.remove('hidden');
-      loadStudent();
-    };
-
-    document.getElementById('btnLogin').addEventListener('click', login);
-    document.getElementById('password').addEventListener('keydown', (e)=>{ if (e.key==='Enter') login(); });
-    document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('token'); location.reload(); });
-
-    async function loadStudent() {
-      const p = await api('/api/me/profile');
-      if (p.ok) {
-        const profile = await p.json();
-        document.getElementById('profile').innerHTML = `
-          <div class="flex items-center gap-4">
-            <img src="${profile.avatarUrl || 'https://via.placeholder.com/64'}" class="w-16 h-16 rounded-full object-cover" />
-            <div>
-              <div class="font-medium">${profile.name}</div>
-              <div class="text-sm text-gray-600">Class ${profile.class || ''} ${profile.section || ''} • Roll ${profile.roll || ''}</div>
-            </div>
-          </div>`;
-      }
-      const a = await api('/api/me/achievements');
-      const wrap = document.getElementById('achievements');
-      wrap.innerHTML = '';
-      if (a.ok) {
-        const list = await a.json();
-        if (list.length === 0) { wrap.innerHTML = '<div class="text-sm text-gray-600">No achievements yet.</div>'; return; }
-        list.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'border rounded p-3';
-          div.innerHTML = `<div class=\"font-medium\">${item.title}</div>
-            <div class=\"text-sm text-gray-600\">${item.type} • ${item.level || ''} ${item.position || ''} ${item.date || ''}</div>
-            <div class=\"text-sm\">${item.description || ''}</div>`;
-          wrap.appendChild(div);
-        });
-      }
-    }
-
-    (async function init(){
-      if (localStorage.token) {
-        const me = await api('/api/me');
-        if (me.ok) {
-          const m = await me.json();
-          if (m.role === 'admin') location.href = './admin.html';
-          else { document.getElementById('login').classList.add('hidden'); document.getElementById('student').classList.remove('hidden'); loadStudent(); }
-        } else {
-          localStorage.removeItem('token');
-        }
-      }
-      if (!BASE || BASE.includes('REPLACE_WITH_API_BASE')) {
-        document.getElementById('loginStatus').innerText = 'Configure docs/config.js with your HTTPS API base (ngrok/Glitch).';
-      }
-    })();
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Extracurricular Achievements</title>
+    <script type="module" crossorigin src="/Student-extracurricular-achievements/assets/index-DjEl5GJL.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
